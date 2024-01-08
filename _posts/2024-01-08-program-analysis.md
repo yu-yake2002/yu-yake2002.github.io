@@ -6,30 +6,44 @@ categories: SE chinese
 ---
 
 ## 软件分析概述
-1. 静态分析（Static Analysis）和动态测试（Dynamic Testing）的区别是什么？
+
+###  静态分析（Static Analysis）和动态测试（Dynamic Testing）的区别是什么？
 - **静态分析（Static Analysis）**是指在实际运行程序$P$之前，通过分析静态程序$P$本身来推测程序的行为，并判断程序是否满足某些特定的性质（Property）$Q$。
 - 动态测试是指通过运行程序$P$，收集程序的运行时信息来观察代码运行状况。
 
-2. 完全性（Soundness）、正确性（Completeness）、假积极（False Positives）和假消极（False Negatives）分别是什么含义？
+### 完全性（Soundness）、正确性（Completeness）、假积极（False Positives）和假消极（False Negatives）分别是什么含义？
 
-  一个静态分析$S$。我们定义程序P的关于$Q$的真实行为为真相（Truth）。
-  - **完全性（Soundness）**：真相一定包含在$S$给出的答案中；
-  - **正确性（Completeness）**：$S$给出的答案一定包含在真相中；
+一个静态分析$S$。我们定义程序P的关于$Q$的真实行为为真相（Truth）。
+- **完全性（Soundness）**：真相一定包含在$S$给出的答案中；
+- **正确性（Completeness）**：$S$给出的答案一定包含在真相中。
+
 记这个静态分析程序给出的答案集合$A$，真相集合为$T$，则完美的静态分析满足：
 
 $$T \subseteq A \wedge A \subseteq T \Leftrightarrow A = T$$
 
 其中，$T \subseteq A$体现了完全性，$A \subseteq T$体现了正确性。
 
-记程序$P$的关于性质$Q$的静态分析$S$有**假积极（False Positive）**问题，当且仅当$S$给出的答案$A$和$P$关于$Q$的真相$T$满足如下关系：
+- 假积极：记程序$P$的关于性质$Q$的静态分析$S$有**假积极（False Positive）**问题，当且仅当$S$给出的答案$A$和$P$关于$Q$的真相$T$满足如下关系：
 
-$$\exists a \in A, a\notin T$$
+$$\exists a \in A, a \notin T$$
 
 其中，$a$称为一个**假积极实例（False Positive Instance）**，其实是一个**消极实例（Negative Instance）**。
 
-3. 为什么静态分析通常需要尽可能保证完全性？
+- 假消极：记程序$P$的关于性质$Q$的静态分析$S$有**假消极（False Negative）**问题，当且仅当$S$给出的答案$A$和$P$关于$Q$的真相$T$满足如下关系：
 
-4. 如何理解抽象（Abstraction）和过近似（Over-Approximation）？
+$$\exists a \notin A, a \in T$$
+
+其中，$a$称为一个**假消极实例（False Negative Instance）**，其实是一个**积极实例（Positive Instance）**。
+
+### 为什么静态分析通常需要尽可能保证完全性？
+
+- Sound 的静态分析可以帮助我们有效的缩小 debug 的范围，我们最多只需要在$A$范围内暴力排查掉所有的假积极实例（False Positive Instance）就可以了，人工排查的代价是可控的。
+- Complete 的静态分析做不到这一点，它不能够帮助我们有效缩小 debug 的范围。因为假消极实例（False Negative Instance）$a\notin A$，所以$a$的范围是$P−A$。这里注意的是，虽然假消极的理论范围是$T−A$，但因为我们并不知道$T$是什么，所以只能从$P−A$中排查。而$P−A$往往是比$A$大得多的，因此排查假消极的代价是很大的。
+
+### 如何理解抽象（Abstraction）和过近似（Over-Approximation）？
+
+- **抽象（Abstraction）**：当我们考虑程序$P$的性质$Q$时，程序$P$中的各种值，我们或许不一定非得事无巨细。比如说，当我们考虑除零错误（Zero Division Error）的时候，对于某个值，我们只需要判定其是否为$0$即可，至于它具体是多大，我们其实不关心，因为它和我们要研究的性质$Q$没有直接关联。这种将$P$中的值的，和我们需要研究的性质$Q$相关的性质提取出来，从而忽略其他细节的过程，就是一个抽象的过程。
+- **过近似（Over-Approximation）**：软件分析中的转移函数与控制流，针对程序中的语句，对抽象域上的结果提供转换规则，达到soundness的目标。
 
 ## 程序的中间表示
 1. 编译器（Compiler）和静态分析器（Static Analyzer）的关系是什么？
