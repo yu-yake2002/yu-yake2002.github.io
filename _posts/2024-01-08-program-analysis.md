@@ -401,29 +401,184 @@ for (i = 0; i < 3; i++) {
 
 ### 指针分析的规则（Pointer Analysis Rules）是什么？
 
+记程序的指针集为$Pointer$，对象集合为$O$，其幂集记为$P(O)$，定义**指向关系（Points-to Relation）**是从$Pointer$到$P(O)$映射，用$pt$表示，满足
+
+$$pt\subseteq Pointer \times P(O)$$
+
+于是，我们可以用$pt(p)$来表示指针$p$的**指向集合（Points-to Set）**。
+
+我们用推导式的方式来描述各种语句在指针分析中的规则。考虑命题$P_1, P_2, \dots, P_m$和命题$Q_1, Q_2, \dots, Q_n$，定义**推导式（Comprehension）**形式如下：
+
+$$\frac{P_1, P_2, \dots, P_m​}{Q_1, Q_2, \dots, Q_n}$$
+
+其含义是，若$P_1, P_2, \dots, P_m$为真，则$Q_1, Q_2, \dots, Q_n$为真。 其中，$P_i$​称为**前提（Premises）**，$Q_j$称为**结论（Conclusion）**。若$m=0$，则称结论**无条件（Unconditional）**成立。
+
+|类型|语句|规则|图示|
+|:-:|:-:|:-:|:-:|
+|创建|`i: x = new T()`| $\overline{o_i \in pt(x)}$ |<img src="https://raw.githubusercontent.com/JacyCui/static-analysis/main/docs/07-pta-fd/new.png" alt="new" style="zoom:30%;"/>|
+|赋值|`x = y`| $o_i\in pt(y)$<br/>$\overline{o_i \in pt(x)}$|<img src="https://raw.githubusercontent.com/JacyCui/static-analysis/main/docs/07-pta-fd/assign.png" alt="assign" style="zoom:30%;"/>|
+|存储|`x.f = y`| $\underline{o_i \in pt(x), o_j\in pt(y)}$<br/>$o_j \in pt(o_i.f)$ |<img src="https://raw.githubusercontent.com/JacyCui/static-analysis/main/docs/07-pta-fd/store.png" alt="store" style="zoom:30%;"/>|
+|载入|`y = x.f`| $\underline{o_i\in pt(x), o_j\in pt(o_i.f)}$<br/>$o_j\in pt(y)$ |<img src="https://raw.githubusercontent.com/JacyCui/static-analysis/main/docs/07-pta-fd/load.png" alt="load" style="zoom:30%;"/>|
+
 ### 如何理解指针流图（Pointer Flow Graph）？
+一个程序的**指针流图（Pointer Flow Graph）**指的是表示对象如何在程序中的指针之间流动的有向图。
+- PFG中的一个节点$n$代表了一个变量或者某个对象的一个字段，即
+
+  $$n\in Pointer \subseteq V \cup (O\times F)$$
+
+  PFG中的所有节点就是程序中的所有指针。
+- PFG中的一条边$x \to y \in Pointer \times Pointer$表示指针$x$指向的对象可能会流到指针$y$的指向集合中（即也可能被$y$指向）。
+
+其中，$V$表示程序中所有变量的集合，$O$表示所有对象的集合，$F$表示所有字段的集合。
+
+对于各种类型的语句，这样添加PFG边。
+
+![PFGedge](../pictures/Program-Analysis-PFGedge.png)
 
 ### 指针分析算法（Pointer Analysis Algorithms）的基本过程是什么？
+以下两个步骤相互依赖，动态更新：
+- 构建指针流图 PFG
+- 在 PFG 上传递指向信息
+
+![intra-ci](../pictures/Program-Analysis-intra-ci.png)
 
 ### 如何理解方法调用（Method Call）中指针分析的规则？
+|类型|语句|规则|PFG边|
+|:-:|:-:|:-:|:-:|
+|调用|`l: r = x.k(a1, ..., an)`|$o_i\in pt(x), m=Dispatch(o_i, k)$<br/>$o_u\in pt(a_j), 1\le j\le n$<br/>$o_v\in pt(m_{ret})$<br/>$\overline{o_i\in pt(m_{this})}$<br/>$o_u\in pt(m_{p_j}), 1\le j\le n$<br/>$o_v\in pt(r)$|$a_1\to m_{p_1}$<br/>... ...<br/>$a_n\to m_{p_n}$<br/>$m_{ret}\to r$|
 
 ### 怎样理解过程间的指针分析算法（Inter-procedural Pointer Analysis Algorithm）？
+过程间的指针分析是和调用图的构建一起进行的，也就是说，指针分析和调用图构建之间就像指针分析和指针流图构建之间一样，是相互依赖的。调用图向我们描述了一个“可达的世界”：
+- 入口方法（比如说 main 方法）是一开始就可达的；
+- 其他的可达方法是在分析的过程中不断发现的；
+- 只有可达的方法和语句才会被分析。
+
+称调用图中，**入口方法（Entry Methods）以及从入口方法可达的其他结点为可达方法（Reachable Methods）**。所有的可达方法构成了一个**可达调用子图（Reachable Sub-Call-Graph）**。
 
 ### 即时调用图构建（On-the-fly Call Graph Construction）的含义是什么？
+称一边使用调用图，一边构建调用图的方式为**即时调用图构建（On-the-fly Call Graph Construction）**。
+
+基于指针分析来构建调用图的过程中，反过来又会促进指针分析的过程，因为调用边和返回边也是会传递指向关系的，从而两者是相互依赖的，我们称这种调用图的构建方式为即时调用图构建（On-the-fly Call Graph Construction）。
 
 ### 上下文敏感（Context Sensitivity, C.S.）是什么？
+称一个静态分析是**上下文敏感的（Context-Sensitive, C.S.）**，如果它区分一个方法的不同**调用语境（Calling Context）**；称一个静态分析是**上下文不敏感的（Context-Insensitive, C.I.）**，如果它将一个方法所有的调用语境汇合到一起分析。在上下文敏感的分析中，对于每一个调用的上下文都会单独分析，因此，一个方法可能在不同的上下文中被分析很多次。
 
 ### 上下文敏感堆（C.S. Heap）是什么？
+- 抽象的对象也应当用上下文来修饰（称为堆上下文），最普遍的选择是继承该对象分配点所在方法的上下文。
+- 上下文敏感的堆抽象在分配点抽象的基础上提供了一个粒度更精确的堆模型。
+- 称区分**堆上下文（Heap Context）**的分配点抽象为**上下文敏感的分配点抽象（Context-sensitive Allocation-site Abstraction）**。
 
 ### 为什么 C.S. 和 C.S. Heap 能够提高分析精度？
 
+#### C.S.
+- 在动态执行的过程中，每一个方法可能在不同的调用语境中被调用多次。
+- 在不同的调用语境下面，方法中的变量可能会指向不同的对象。
+- 在上下文不敏感的指针分析中，不同的上下文被混合在了一起，并传递给程序的其他部分（通过返回值或者副作用），这就导致了虚假的数据流。
+
+#### C.S. Heap
+- 在动态执行的过程中，一个分配点可以在不同的调用语境下创建多个对象；
+- 不同的对象（有相同的分配点分配）可能会携带不同的数据流被操作，比如说在它们的字段中存储不同的值。
+- 在指针分析中，不带堆上下文分析这样的代码可能会由于合并不同上下文中的数据流到一个抽象对象中而丢失精度。
+- 相比之下，通过堆上下文来区分同一个分配点的不同对象能够获得不少的精度。
+
 ### 上下文敏感的指针分析有哪些规则？
+|类型|语句|规则（在上下文 $c$ 下）| 图示|
+|:-:|:-:|:-:|:-:|
+|创建|`i: x = new T()`| $\overline{c:o_i \in pt(c:x)}$|<img src="https://raw.githubusercontent.com/JacyCui/static-analysis/main/docs/08-pta-cs/cs-new.png" alt="cs-new" style="zoom:30%;"/>|
+|赋值|`x = y`|$\underline{c':o_i\in pt(c:y)}$<br/>$c':o_i \in pt(c:x)$|<img src="https://raw.githubusercontent.com/JacyCui/static-analysis/main/docs/08-pta-cs/cs-assign.png" alt="cs-assign" style="zoom:30%;"/>|
+|存储|`x.f = y`|$\underline{c':o_i\in pt(c:x), c'':o_j\in pt(c:y)}$<br/>$c'':o_j\in pt(c':o_i.f)$|<img src="https://raw.githubusercontent.com/JacyCui/static-analysis/main/docs/08-pta-cs/cs-store.png" alt="cs-store" style="zoom:30%;"/>|
+|载入|`y = x.f`|$\underline{c':o_i\in pt(c:x), c'':o_j\in pt(c':o_i.f)}$<br/>$c'':o_j\in pt(c:y)$|<img src="https://raw.githubusercontent.com/JacyCui/static-analysis/main/docs/08-pta-cs/cs-load.png" alt="cs-load" style="zoom:30%;"/>|
+
+调用语句还要为被调用者生成新的上下文。
+|类型|语句|规则（在上下文 $c$ 下）|
+|:-:|:-:|:-:|
+|调用|`l: r = x.k(a1, ..., an)`|$c':o_i\in pt(c:x)$<br/>$m = Dispatch(o_i, k), c^t = Select(c, l, c':o_i)$<br/>$c'':o_u\in pt(c:a_j), 1\le j\le n$<br/>$\underline{c''':o_v\in pt(c^t:m_{ret})}$<br/>$c':o_i\in pt(c^t:m_{this})$<br/>$c'':o_u\in pt(c^t:m_{p_j}), 1\le j\le n$<br/>$c''':o_v\in pt(c:r)$|
+
+$Select(c,l,c′:o_i)$根据在调用点$l$处可获得的信息为目标方法$m$选择一个上下文，即目标上下文的生成函数。它是从调用者上下文（Caller Context）到被调用者上下文（Callee Context）的映射。
+- $Select$的输入是调用点$l$、调用点处的上下文$c$、接收对象$c′:o_i$；
+- $Select$的输出是目标方法的的上下文$c^t$。
+
+$Select$的实现方式取决于上下文敏感性变体。
 
 ### 如何理解上下文敏感的指针分析算法（Algorithm for Context-sensitive Pointer Analysis）？
 
+|类型|语句|规则（在上下文 $c$ 下）|PFG边|
+|:-:|:-:|:-:|:-:|
+|创建|`i: x = new T()`| $\overline{c:o_i \in pt(c:x)}$|$N/A$|
+|赋值|`x = y`|$\underline{c':o_i\in pt(c:y)}$<br/>$c':o_i \in pt(c:x)$|$c:y \to c:x$|
+|存储|`x.f = y`|$\underline{c':o_i\in pt(c:x), c'':o_j\in pt(c:y)}$<br/>$c'':o_j\in pt(c':o_i.f)$|$c:y \to c':o_i.f$|
+|载入|`y = x.f`|$\underline{c':o_i\in pt(c:x), c'':o_j\in pt(c':o_i.f)}$<br/>$c'':o_j\in pt(c:y)$|$c':o_i.f\to c:y$|
+|调用|`l: r =`</br></br>`x.k(a1, ..., an)`|$c':o_i\in pt(c:x)$<br/>$m = Dispatch(o_i, k), c^t = Select(c, l, c':o_i)$<br/>$c'':o_u\in pt(c:a_j), 1\le j\le n$<br/>$\underline{c''':o_v\in pt(c^t:m_{ret})}$<br/>$c':o_i\in pt(c^t:m_{this})$<br/>$c'':o_u\in pt(c^t:m_{p_j}), 1\le j\le n$<br/>$c''':o_v\in pt(c:r)$|$c:a_1\to c^t:m_{p_1}$<br/>$... ...$<br/>$c:a_n \to c^t:m_{p_n}$<br/>$c^t:m_{ret}\to c:r$|
+
+上下文敏感的指针分析算法只是在上下文不敏感算法的基础上增加了上下文敏感的内容，更具体的，只是在指针和对象之前加上了上下文的修饰，并在调用语句的处理当中增加了新上下文的生成已，整体的思路和框架没有发生任何变化。此外，设置入口方法的上下文为空，因为一般情况下程序的入口方法只会被操作系统调用一次，因而不需要用上下文加以区分。
+
 ### 常见的上下文敏感性变体（Context Sensitivity Variants）有哪些？
+- 调用点敏感
+- 对象敏感
+- 类型敏感
+
+通常，在面向对象语言的实践过程中：
+- 精度方面：对象敏感 > 类型敏感 > 调用点敏感
+- 效率方面：类型敏感 > 对象敏感 > 调用点敏感
 
 ### 常见的几种上下文变体之间的差别和联系是什么？
+
+定义一个指针分析的**上下文敏感性（Context Sensitivity）**为一个**上下文生成子（Context Generator）**，记为 
+$Select(c,l,c':o_i)$，描述了实例方法调用的时候用怎样的上下文去修饰目标方法。
+
+Select 函数的输入是调用点处的上下文$c$，调用点$l$，以及调用方法的带有堆上下文的接收对象$c':o_i$。
+Select 函数的输出是用于修饰目标方法上下文。
+定义**上下文不敏感（Context InSensitivity）**：
+
+$$Select(\_,\_,\_)=[]$$
+
+#### 调用点敏感
+- 定义**调用点敏感（Call-Site Sensitivity）**：
+
+  $$c=[l',\cdots,l'']\Rightarrow Select(c,l,\_)=[l',\dots,l'',l]$$
+
+  调用点敏感也称为**调用串敏感（Call-String Sensitivity）**。
+
+- 定义**k-调用点敏感（k-Call-Site Sensitivity）**：
+
+  $$c=[l_1,l_2,\dots,l_k]\Rightarrow Select(c,l,\_)=[l_2,\dots,l_k,l]$$
+
+  此时，每个上下文都由调用串的最后$k$个调用点组成。
+  k-调用点敏感也称为**k-控制流分析（k-CFA, Control Flow Analysis）**。 具体地：
+  - 1-调用点敏感
+
+    $$Select(\_,l,\_)=[l]$$
+
+  - 2-调用点敏感
+
+    $$c=[l',l'']⟹Select(c,l,\_)=[l'',l]$$
+
+#### 对象敏感
+- 定义**对象敏感（Object Sensitivity）**：
+
+  $$c'=[o_j,\dots ,o_k] \Rightarrow Select(\_,\_,c':o_i)=[o_j,\dots,o_k,o_i]$$
+
+  对象敏感也称作**分配点敏感（Allocation-Site Sensitivity）**。
+- 定义**k-对象敏感（k-Object Sensitivity）**：
+
+  $$c'=[o_1, \dots, o_k]\Rightarrow Select(\_,\_,c':o_i)=[o_2, \dots, o_k, o_i]$$
+
+  - 特别地，1-对象敏感：
+
+    $$Select(\_,\_,c':o_i)=[o_i]$$
+
+#### 类型敏感
+- 定义**类型敏感（Type Sensitivity）**：
+
+  $$c'=[t',\dots,t'']\Rightarrow Select(\_,\_,c':o_i)=[t',\dots,t'',InType(o_i)]$$
+
+  其中，$InType(o_i)$表示$o_i$是在哪个类中被创建的。
+
+- 定义**k-类型敏感（k-Type Sensitivity）**：
+
+  $$c'=[t_1,\dots,t_k]\Rightarrow Select(\_,\_,c':o_i)=[t_2,\dots,t_k,InType(o_i)]$$
+
+  其中，$InType(o_i)$表示$o_i$是在哪个类中被创建的。
 
 ## 静态分析与安全
 ### 信息流安全（Information Flow Security）的概念是什么？
@@ -446,7 +601,6 @@ for (i = 0; i < 3; i++) {
 - 称在计算系统中指示信息的机制为**信道（Channels）**。如果这个指示信息的机制的本意并不是信息传递，这样的信道称为**隐蔽信道（Covert/Hidden Channels）**。
 
 ### 如何使用污点分析（Taint Analysis）来检测不想要的信息流？
-
 - 污点分析：**污点分析（Taint Analysis）**将程序中的数据分为两类：
   - 关心的敏感数据，我们会给这些数据加标签，加上标签后叫做 污点数据（Tainted Data） ；
   - 其他数据，叫做 无污点数据（Untainted Data） 。
@@ -463,21 +617,216 @@ for (i = 0; i < 3; i++) {
 ### Datalog 语言的基本语法和语义是什么？
 Datalog 的语法语义由两部分组成，数据（Data）和逻辑（Logic），这种语言没有副作用，没有控制流，没有函数，也不是图灵完备的语言。在 Datalog 中，用谓词表示数据，用规则表示逻辑。
 
+#### 原子
+
+在 Datalog 语言中，称返回值为 `True` 或者 `False` 的**表达式（Expression）**为**原子（Atom）**。
+
+在 Datalog 语言中，称形如$P(x_1, x_2, \dots, x_n)$的表达式为**关系型原子（Relational Atoms）**，其中$P$称为**谓词（Predicates）**或**关系（Relation）**， $x_i(1\leq i\leq n)$ 称为**实参（Arguments）**或者**项（Terms）**。
+
+记$x_1 \in X_1, x_2 \in X_2, \dots, x_n \in X_n$，则有
+
+$$P\subseteq X_1 \times X_2 \times \dots \times X_n$$
+
+且定义
+
+$$P(x_1, x_2, \dots, x_n) = True \Leftrightarrow (x_1, x_2, \dots, x_m) \in P$$
+
+此时，称为$(x1,x2,...,xn)$为$P$中的一个**事实（Fact）**。
+
+在Datalog语言中，称可判定真假的代数表达式为**代数型原子（Arithmetic Atoms）**。
+
+#### 规则
+
+在Datalog语言中，称形如$H\leftarrow B_1,B_2,\dots,B_n.$的语句为**规则（Rules）**，其中：
+- $H$称为**头部（Header）**，是规则的**结果（Consequent）**，其形式上是一个原子。
+- $B_1,B_2,\dots,B_n$称为**主体（Body）**，是规则的**前提（Antecedent）**，其中的$B_i$是一个原子或者原子的否定，称为**子目标（Subgoal）**。
+
+规则的含义是如果主体为真，则头部为真。这里 `,` 表示合取关系，即逻辑与，也就是说主体$B_1,B_2,\dots,B_n$为真当且仅当所有的子目标$B_i(1\leq i\leq n)$都为真。
+
+#### EDB和IDB谓词
+
+- 在 Datalog 语言中，称先验定义的谓词为**外延数据库（Extensional Database，EDB）**，其中的关系是不可修改的，可视为输入关系。
+- 在 Datalog 语言中，称由规则建立的谓词为**内涵数据库（Intensional Database，IDB）**，其中的关系是由规则推导出来的，可视为输出关系。
+
+在 Datalog 本身的规约中，对于规则语句，其头部只能是 IDB ，但主体部分的原子既可以是 EDB ，也可以是 IDB 。换句话说， Datalog 支持递归的规则（Recursive Rules）。
+
+#### 析取
+
+在Datalog中，有两种方式来表达析取逻辑：
+
+- 书写多个具有相同头部的规则，其含义是任意一个规则都能够生成那个头部原子谓词中的事实。
+  ```
+  SportFan(person) <- Hobby(person, "jogging").
+  SportFan(person) <- Hobby(person, "swimming").
+  ```
+- 使用逻辑或操作符`;`。
+  ```
+  SportsFan(person) <-
+      Hobby(person, "jogging");
+      Hobby(person, "swimming").
+  ```
+
+#### 否定
+
+在Datalog的规则中，一个子目标也可以是某个原子的否定，写作`!B(...)`，表示`B(...)`的相反意思，即`!B(...)`为真当且仅当`B(...)`为假。
+
+
 ### 如何用 Datalog 来实现指针分析？
+- EDB 其实就是我们能够从程序句法上直接提取的指针相关的信息；
+- IDB 就是我们需要的指针分析的结果；
+- 规则可以直接用指针分析的规则。
+
+#### 建模
+
+- EDB
+  |类型|语句|EDB|
+  |:-:|:-:|:-:|
+  |创建|`i: x = new T()`|`New(x: V, o: O)`|
+  |赋值|`x = y`|`Assign(x: V, y: V)`|
+  |存储|`x.f = y`|`Store(x: V, f: F, y: V)`|
+  |载入|`y = x.f`|`Load(y: V, x: V, f: F)`|
+
+- IDB
+  指针分析的结果 IDB 的形式为 `VarPointsTo(v: V, o: O)` 和 `FieldPointsTo(oi: O, f: F, oj: O)` 。
+  例如：
+  -  $VarPointsTo(x, o_i)$ 表示 $o_i \in pt(x)$ ， 
+  -  $FieldsPointsTo(o_i, f, o_j)$ 表示 $o_j \in pt(o_i.f)$ 。
+
+#### 规则
+
+|类型|语句|规则|Datalog|
+|:-:|:-:|:-:|:-:|
+|创建|`i: x = new T()`| $\overline{o_i \in pt(x)}$ |`VarPointsTo(x, o) <-`<br/><br/>`New(x, o).`|
+|赋值|`x = y`| $o_i\in pt(y)$<br/>$\overline{o_i \in pt(x)}$|`VarPointsTo(x, o) <-`<br/><br/>`Assign(x, y),`<br/><br/>`VarPointsTo(y, o).`|
+|存储|`x.f = y`| $o_i \in pt(x)$<br/>$\underline{o_j\in pt(y)}$<br/>$o_j \in pt(o_i.f)$ |`FieldPointsTo(oi, f, oj) <-`<br/><br/>`Store(x, f, y),`<br/><br/>`VarPointsTo(x, oi),`<br/><br/>`VarPointsTo(y, oj).`|
+|载入|`y = x.f`|$o_i\in pt(x)$<br/>$\underline{o_j\in pt(o_i.f)}$<br/>$o_j\in pt(y)$ |`VarPointsTo(y, oj) <-`<br/><br/>`Load(y, x, f),`<br/><br/>`VarPointsTo(x, oi),`<br/><br/>`FieldPointsTo(oi, f, oj).`|
+
+#### 处理方法调用
+- 方法派发与`this`变量绑定
+- 将形参绑定到实参
+- 将返回值传递给接收变量
 
 ### 如何用 Datalog 来实现污点分析？
+基于指针分析，下面只描述指针分析以外的部分。
+- EDB 谓词：
+    - `Source(m: M)` 污点源方法；
+    - `Sink(m: M, i: N*)` 槽方法；
+    - `Taint(l: S, t: T)` 联系调用点和从调用点出来的污点数据。
+- IDB 谓词
+    - `TaintFlow(sr: S, sn: S, i: N*)` 检测到的污点流。
+        - `TaintFlow(sr, sn, i)` 表示从 `sr` 流出的污点数据可能会流到槽调用 `sn` 的第 `i` 个参数中。
+
+- 处理源头（生成污点数据）
+
+|类型|语句|规则|Datalog|
+|:-:|:-:|:-:|:-:|
+|调用|`l: r = x.k(a1, ..., an)`|$l\to m\in CG$<br/>$\underline{m\in Sources}$<br/>$t_l \in pt(r)$|`VarPointsTo(r, t) <-`<br/><br/>`CallGraph(l, m),`<br/><br/>`Source(m),`<br/><br/>`CallReturn(l, r),`<br/><br/>`Taint(l, t).`|
+
+- 处理槽（生成污点流信息）
+
+|类型|语句|规则|Datalog|
+|:-:|:-:|:-:|:-:|
+|调用|`l: r = x.k(a1, ..., an)`|$l\to m\in CG$<br/>$(m, i) \in Sinks$<br/>$t_j\in pt(a_i)$<br/>$\overline{(j, l, i) \in TaintFlows}$|`TaintFlow(j, l, i) <-`<br/><br/>`CallGraph(l, m),`<br/><br/>`Sink(m, i),`<br/><br/>`Argument(l, i, ai),`<br/><br/>`VarPointsTo(ai, t)`<br/><br/>`Taint(j, t).`|
 
 ## CFL 可达与 IFDS
 
+- 称在CFG中，当实际运行时，某个特定的输入下，控制流会经过的路径为**可行路径（Feasible Path）**；
+- 相反，如果任何输入下，控制流都不经过某条路径，那么这条路径就称为**不可行路径（Infeasible Path）**。
+- 称返回边和调用边相匹配的路径为**可实现路径（Realizable Path）**;
+- 不匹配则称为**不可实现路径（Unrealizable Path）**。
+
+一个可实现的路径不一定会被执行，但是一个不可实现的路径一定不会被执行。
+
 ### 什么是 CFL 可达（CFL-Reachability）？
+为一张有向图中的每条边打上标签，称结点B从结点A是**CFL可达（CFL Reachable）**的，如果存在从A到B的路径，该路径上每条边的标签组成了某个特定的上下文无关语言（Context-free Language, CFL）的合法字符串。
+
+其中，这个上下文无关语言是根据需求相应定义的。通过CFL可以定义出**部分平衡括号问题（Partially Balanced-Parenthesis Problem）**：
+
+- 每个右括号 $)_i$ 都应当有一个左括号 $(_i$ 与之平衡，但反之不亦然；
+- 对于每个调用点 $i$ ，将它的调用边标记为 $(_i$ ，返回边标记为 $)_i$ ；
+- 将其他所有的边标记为 $e$ 。
+
+于是，我们会发现，一个路径是可实现的，当且仅当这个路径上的标记所形成的字符串在语言 $L(realizable)$ 中，其中：
+
+$$
+\begin{aligned}
+realizable &\to matched\ realizable\\
+&\to (_i\ realizable\\
+&\to \varepsilon\\
+matched &\to (_i\ matched\ )_i\\
+&\to e\\
+&\to \varepsilon\\
+&\to matched\ matched
+\end{aligned}
+$$
+
 
 ### IFDS（Interprocedural Finite Distributive Subset Problem）的基本想法是什么？
 
+**IFDS（Interprocedural Finite Distributive Subset Problem） **指的是一类过程间（Interprocedural）数据流分析的子问题，其流函数具有分配性（Distributive），定义域是有限（Finite）集。其中，**流函数（Flow Functions）**由结点转移和边转移组成。
+
+IFDS是一种通过图可达性的方式进行静态程序分析的框架，为数据流分析提供了一种可实现全路汇集（MRP）的解决方案，MRP的定义与全路汇集（MOP）类似。
+
+#### MRP
+定义 **可实现全路汇集（Meet-Over-All-Realizable-Paths, MRP）** 的解决方案（以前向分析为例，后向分析倒过来即可）通过如下步骤计算某个程序点 $(s_i, s_{i+1})$ （见定义3.4）处的数据流值，记为 $MRP[s_i]$ ：
+
+- 考虑从程序入口到 $s_i$ 处的路径 $P$ 的 **流函数（Flow Function）** 为 $F_P$ ，所有可实现路径的集合记为 $RPaths(ENTRY, s_i)$ ；
+    - 这里的流函数的作用类似于状态转移方程，只不过状态转移方程是结点转移，这里说的是边转移（结点转移可以转化成边转移，后续会有例子）。
+    - 一条路径的流函数是路径上边的流函数的复合。
+- 使用联合（join）或者汇集（meet）操作来求这些值的最小上界或者最大下界。
+
+形式化表示为：
+
+$$MRP[s_i] = \bigvee_{\forall P \in RPaths(ENTRY, s_i)} F_P(OUT[ENTRY])$$
+
+> 此时，一般 $OUT[ENTRY] = \bot$ ，详见 4.1.1。
+
+或
+
+$$MRP[s_i] = \bigwedge_{\forall P \in RPaths(ENTRY, s_i)} F_P(OUT[ENTRY])$$
+
+> 此时，一般 $OUT[ENTRY] = \top$ ，详见 4.1.2。
+
+#### 基本步骤
+给定一个程序 $P$ ，和一个数据流分析问题 $Q$
+
+- 为 $P$ 建立一个 **超图（Supergraph）** $G^{*}$ 并且根据 $Q$ 定义 $G^{*}$ 中边的流函数；
+- 通过将流函数转化成 **代表关系（Representation Relations）** 的方式，基于 $G^{*}$ 为 $P$ 建立一个 **分解超图（Exploded Supergraph）** $G^{\sharp}$ 。
+- $Q$ 可以被当作图 $G^{\sharp}$ 上的可达性问题来解决（寻找MRP解决方案），具体地，通过在 $G^{\sharp}$ 上运行制表算法来解决。
+
+令 $n$ 是某个程序点， 数据流因素 $d \in MRP[n_i]$ 当且仅当在 $G^{\sharp}$ 中存在一条从 $(s_{main}, 0)$ 到 $(n_i, d)$ 的可实现的路径。
+
+##### 超图
+在IFDS中，程序用 **超图（Supergraph）** $G^{*} = (N^{*}, E^{*})$ 表示。
+- $G^{*}$ 是由一组控制流图（Control Flow Graph）$G_1, G_2, ...$ 组成的，每个过程 $Procedure_i$ 都有一个对应的控制流图 $G_i$。
+    - 每一个控制流图 $G_p$ 都有自己独特的一个起始结点（Start Node） $s_p$ 和结束结点（Exit Node） $e_p$ 。
+    - 在每个过程的控制流图 $G_i$ 中，用调用结点（Call Node） $Call_p$ 和 返回点结点（Return-site Node） $Ret_p$ 来表示对 $Procedure_p$ 的过程调用。
+- 除了每个过程内部的控制流边以外，对于每个过程调用， $G^{*}$ 还有另外3种边：
+    - 一条过程内的，从调用者的 $Call_p$ 到 $Ret_p$ 的 **调用返回边（call-to-return-site edge）** ，
+    - 一条过程间的，从调用者 $Call_p$ 到被调用者的 $s_p$ 的 **调用起始边（call-to-start-edge）** ，
+    - 一条过程间的，从被调用者的 $e_p$ 到调用者的 $Ret_p$ 的 **结束返回边（exit-to-return-edge）** 。 
+
+这里的超图和过程间控制流图很像，只是它将调用点拆分成了调用结点与返回点结点两个部分而已。
+
+##### 流函数
+以下面这个问题为例。
+定义 **可能未初始化变量（Possibly-uninitialized Variables）** 问题：对于 $N^{*}$（超图的结点集合） 中的每个结点 $n$ ，求在执行 $n$ 之前有可能未初始化的变量集合。
+
+定义**lambda表达式**形如 $\lambda e_{param}. e_{body}$ ，其中 $e_{param}$ 是形参表， $e_{body}$ 是函数体。
+
+采用 $(\lambda e_{param}. e_{body})(e_{arg})$ 的形式来调用这个匿名函数，其中 $e_{arg}$ 是实参表，如果只有一个元素，实参表的括号可以省略。
+
 ### 怎样的问题可以用 IFDS 来解决？
+> 回顾：分配性是指$f(x\vee y)=f(x)\vee f(y)$，$f(x\wedge y)=f(x)\wedge f(y)$。
+
+分配性是 IFDS 的关键，定义可达性问题、活跃变量问题、空闲表达式问题是可分配的（所有的 $gen/kill$ 问题都是可分配的），可以用 IFDS 解决。但是像常量传播、指针分析这类不可分配的问题，就没有办法用标准的 IFDS 方法解决。
 
 ## 完全性与近似完全性
 
 ### 近似完全性（Soundiness）的动机和概念是什么？
+- 动机：对于静态分析来说， **难分析的特性（Hard-to-analyze Features）**或者简称**难的特性（Hard Feature）**是指：对这些特性进行激进的保守处理（即完全的过近似）可能会使分析过于不精确而无法扩展（scale），从而使分析变得无用。
+
+- 概念：一个**近似完全的（soundy）**静态分析通常意味着这个分析大多数时候是完全的，并且对于进行了不完全处理的难的或者特定的语言特性有着良好的标注和说明。 称一个近似完全的静态分析具有**近似完全性（Soundiness）**。
 
 ### 为什么 Java 反射（Reflection）和原生代码是难分析的？
 
