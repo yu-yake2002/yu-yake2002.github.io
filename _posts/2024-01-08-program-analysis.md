@@ -816,10 +816,32 @@ $$MRP[s_i] = \bigwedge_{\forall P \in RPaths(ENTRY, s_i)} F_P(OUT[ENTRY])$$
 
 采用 $(\lambda e_{param}. e_{body})(e_{arg})$ 的形式来调用这个匿名函数，其中 $e_{arg}$ 是实参表，如果只有一个元素，实参表的括号可以省略。
 
+##### 分解超图
+将流函数转换成代表关系，把超图变成分解超图。
+
+对于流函数 $f$ ，其 **代表关系（Representation Relation）** 是一个二元关系 $R_{f} \subseteq (D \cup \{0\}) \times (D \cup \{0\})$ ，其定义如下：
+
+$$R_f = \{(0, 0)\} \cup \{(0, y)| y \in f(\emptyset)\}\cup\{(x, y)|y \notin f(\emptyset) \wedge y\in f(\{x\})\}$$
+
+用二部图 $G$ 来表示上面的二元关系，则 $(d_1, d_2) \in R_f \Leftrightarrow d_1\to d_2 \in G$ 。
+
+![](https://static-analysis.cuijiacai.com/assets/img/representation-relation.8311e5d9.png)
+
+用有序对 $(n_i, d)$ 表示程序点 $(n_i, n_{i+1})$ 处的数据流因素 $d$ ，用 $(n_i, 0)$ 表示该程序点处特殊的数据流因素 $0$ 。
+定义 **分解超图（Exploded Supergraph）** 形如 $G^{\sharp} = (V^{\sharp}, E^{\sharp})$ ，其中：
+
+- $V^{\sharp} = \{(n_i, d)|n_i\ is\ a\ program\ point\ and\ d\ is \ a\ dataflow\ factor\}$ 。
+- $(n_i, d_1) \to (n_{i + 1}, d_2) \in E^{\sharp} \Leftrightarrow (d_1, d_2) \in R_{f_i}$ ，其中， $f_i$ 是 $i$ 处的流函数。
+
+称分解超图 $G^{\sharp}$ 中形如 $(n_i, 0) \to (n_{i+1}, 0)$ 这样的边为 **粘边（Glue Edge）** 。IFDS 中分解超图上的粘边是为了表达出流函数的复合运算。
+
+##### 制表算法
+**制表算法（Tabulation Algorithm）** 的功能是给定分解超图，求其中的所有可实现路径。
+
 ### 怎样的问题可以用 IFDS 来解决？
 > 回顾：分配性是指$f(x\vee y)=f(x)\vee f(y)$，$f(x\wedge y)=f(x)\wedge f(y)$。
 
-分配性是 IFDS 的关键，定义可达性问题、活跃变量问题、空闲表达式问题是可分配的（所有的 $gen/kill$ 问题都是可分配的），可以用 IFDS 解决。但是像常量传播、指针分析这类不可分配的问题，就没有办法用标准的 IFDS 方法解决。
+分配性是 IFDS 的关键，定义可达性问题、活跃变量问题、空闲表达式问题是可分配的（所有的 $gen/kill$ 问题都是可分配的），可以用 IFDS 解决。但是像常量传播、指针分析这类不可分配的问题，就没有办法用标准的 IFDS 方法解决。在 IFDS 中，每个流函数一次只能处理一个数据流因素——即只能计算 $F(x)$ 或者 $F(y)$ ，不能计算 $F(x\wedge y)$ 。因为每个代表关系只能说明“如果$x$存在，那么 ...”，“如果$y$存在，那么...”但是并不能表达“如果$x$和$y$都存在，那么...”这样的逻辑。
 
 ## 完全性与近似完全性
 
