@@ -223,7 +223,7 @@ MOP解决方案：数据流分析的**全路交汇（Meet-Over-All-Paths）**的
 
 这显然是一种非常暴力的算法。
 
-![Example](../pictures/MOP.png)
+![Example](https://raw.githubusercontent.com/yu-yake2002/yu-yake2002.github.io/main/pictures/MOP.png)
 
 我们通过一个例子来比较一下这两个算法。如果采用迭代算法，我们最终得到的结果为：
 
@@ -278,9 +278,9 @@ UNDEF            & otherwise
 
 - 类层级结构分析：通过查找类的层级结构来解析目标方法的过程，称之为**类层级结构分析（Class Hierarchy Analysis，CHA）**。
   - 虚调用的方法派发算法，就是从接受对象所在的类开始，按照从子类向到基类的顺序查找，直到找到一个方法名和描述符都相同的非抽象方法为止。
-  ![Dispatch](../pictures/Program-Analysis-Dispatch.png)
+  ![Dispatch](https://raw.githubusercontent.com/yu-yake2002/yu-yake2002.github.io/main/pictures/Program-Analysis-Dispatch.png)
   - CHA的调用解析算法处理虚调用的方式是暴力的枚举，将变量声明类型及其子类中所有和调用点处签名匹配的方法都视为可能的目标方法。
-  ![Call-Resolution](../pictures//Program-Analysis-Call-Resolution.png)
+  ![Call-Resolution](https://raw.githubusercontent.com/yu-yake2002/yu-yake2002.github.io/main/pictures/Program-Analysis-Call-Resolution.png)
   此算法中$c$的子类包括$c$的直接子类和间接子类。
 
 - 通过CHA构建整个程序调用图的基本过程为：
@@ -433,14 +433,14 @@ $$\frac{P_1, P_2, \dots, P_m​}{Q_1, Q_2, \dots, Q_n}$$
 
 对于各种类型的语句，这样添加PFG边。
 
-![PFGedge](../pictures/Program-Analysis-PFGedge.png)
+![PFGedge](https://raw.githubusercontent.com/yu-yake2002/yu-yake2002.github.io/main/pictures/Program-Analysis-PFGedge.png)
 
 ### 指针分析算法（Pointer Analysis Algorithms）的基本过程是什么？
 以下两个步骤相互依赖，动态更新：
 - 构建指针流图 PFG
 - 在 PFG 上传递指向信息
 
-![intra-ci](../pictures/Program-Analysis-intra-ci.png)
+![intra-ci](https://raw.githubusercontent.com/yu-yake2002/yu-yake2002.github.io/main/pictures/Program-Analysis-intra-ci.png)
 
 ### 如何理解方法调用（Method Call）中指针分析的规则？
 |类型|语句|规则|PFG边|
