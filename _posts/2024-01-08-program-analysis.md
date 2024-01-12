@@ -500,6 +500,7 @@ $$\frac{P_1, P_2, \dots, P_m​}{Q_1, Q_2, \dots, Q_n}$$
 - 相比之下，通过堆上下文来区分同一个分配点的不同对象能够获得不少的精度。
 
 ### 上下文敏感的指针分析有哪些规则？
+
 |类型|语句|规则（在上下文 $c$ 下）| 图示|
 |:-:|:-:|:-:|:-:|
 |创建|`i: x = new T()`| $\overline{c:o_i \in pt(c:x)}$|<img src="https://raw.githubusercontent.com/JacyCui/static-analysis/main/docs/08-pta-cs/cs-new.png" alt="cs-new" style="zoom:30%;"/>|
@@ -508,6 +509,7 @@ $$\frac{P_1, P_2, \dots, P_m​}{Q_1, Q_2, \dots, Q_n}$$
 |载入|`y = x.f`|$\underline{c':o_i\in pt(c:x), c'':o_j\in pt(c':o_i.f)}$<br/>$c'':o_j\in pt(c:y)$|<img src="https://raw.githubusercontent.com/JacyCui/static-analysis/main/docs/08-pta-cs/cs-load.png" alt="cs-load" style="zoom:30%;"/>|
 
 调用语句还要为被调用者生成新的上下文。
+
 |类型|语句|规则（在上下文 $c$ 下）|
 |:-:|:-:|:-:|
 |调用|`l: r = x.k(a1, ..., an)`|$c':o_i\in pt(c:x)$<br/>$m = Dispatch(o_i, k), c^t = Select(c, l, c':o_i)$<br/>$c'':o_u\in pt(c:a_j), 1\le j\le n$<br/>$\underline{c''':o_v\in pt(c^t:m_{ret})}$<br/>$c':o_i\in pt(c^t:m_{this})$<br/>$c'':o_u\in pt(c^t:m_{p_j}), 1\le j\le n$<br/>$c''':o_v\in pt(c:r)$|
