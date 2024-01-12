@@ -140,6 +140,17 @@ if x rop y goto L
 
     初始化的时候，除了程序入口之外的其他基块$B$的$OUT[B]$都应该被初始化为全集。
 
+总结：
+||定义可达性分析|活跃变量分析|可用表达式分析|
+|:-:|:-:|:-:|:-:|
+|定义域|定义集的幂集|变量集的幂集|表达式集的幂集|
+|方向|正向分析|逆向分析|正向分析|
+|估计|过近似|过近似|欠近似|
+|边界| $OUT[ENTRY]=\emptyset$ | $IN[EXIT]=\emptyset$ | $OUT[ENTRY]=\emptyset$ |
+|初始化| $OUT[B] = \emptyset$ | $IN[B]=\emptyset$ | $OUT[B] = U$|
+|状态转移| $OUT[B] = gen_B \cup (IN[B] - kill_B)$ | $IN[B] = use_B \cup (OUT[B] - def_B)$ | $OUT[B] = gen_B \cup (IN[B] - kill_B)$|
+|交汇| $IN[B] = \bigcup\limits_{P \in pre(B)} OUT[P]$ | $OUT[B] = \bigcup\limits_{S \in suc(B)} IN[S]$ | $IN[B] = \bigcap\limits_{P \in pre(B)} OUT[P]$ |
+
 ### 如何理解数据流分析的迭代算法？数据流分析的迭代算法为什么最后能够终止？
 在迭代算法中，每轮迭代都逐一分析所有基块，尝试对基块的分析结果进行更新。若在某轮迭代中，所有基块的分析结果都不变，那么算法终止。
 
