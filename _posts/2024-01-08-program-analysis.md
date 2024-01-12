@@ -528,7 +528,7 @@ $Select$的实现方式取决于上下文敏感性变体。
 |赋值|`x = y`|$\underline{c':o_i\in pt(c:y)}$<br/>$c':o_i \in pt(c:x)$|$c:y \to c:x$|
 |存储|`x.f = y`|$\underline{c':o_i\in pt(c:x), c'':o_j\in pt(c:y)}$<br/>$c'':o_j\in pt(c':o_i.f)$|$c:y \to c':o_i.f$|
 |载入|`y = x.f`|$\underline{c':o_i\in pt(c:x), c'':o_j\in pt(c':o_i.f)}$<br/>$c'':o_j\in pt(c:y)$|$c':o_i.f\to c:y$|
-|调用|`l: r =`</br></br>`x.k(a1, ..., an)`|$c':o_i\in pt(c:x)$<br/>$m = Dispatch(o_i, k), c^t = Select(c, l, c':o_i)$<br/>$c'':o_u\in pt(c:a_j), 1\le j\le n$<br/>$\underline{c''':o_v\in pt(c^t:m_{ret})}$<br/>$c':o_i\in pt(c^t:m_{this})$<br/>$c'':o_u\in pt(c^t:m_{p_j}), 1\le j\le n$<br/>$c''':o_v\in pt(c:r)$|$c:a_1\to c^t:m_{p_1}$<br/>$... ...$<br/>$c:a_n \to c^t:m_{p_n}$<br/>$c^t:m_{ret}\to c:r$|
+|调用|`l: r =`<br/>`x.k(a1, ..., an)`|$c':o_i\in pt(c:x)$<br/>$m = Dispatch(o_i, k), c^t = Select(c, l, c':o_i)$<br/>$c'':o_u\in pt(c:a_j), 1\le j\le n$<br/>$\underline{c''':o_v\in pt(c^t:m_{ret})}$<br/>$c':o_i\in pt(c^t:m_{this})$<br/>$c'':o_u\in pt(c^t:m_{p_j}), 1\le j\le n$<br/>$c''':o_v\in pt(c:r)$|$c:a_1\to c^t:m_{p_1}$<br/>$... ...$<br/>$c:a_n \to c^t:m_{p_n}$<br/>$c^t:m_{ret}\to c:r$|
 
 上下文敏感的指针分析算法只是在上下文不敏感算法的基础上增加了上下文敏感的内容，更具体的，只是在指针和对象之前加上了上下文的修饰，并在调用语句的处理当中增加了新上下文的生成已，整体的思路和框架没有发生任何变化。此外，设置入口方法的上下文为空，因为一般情况下程序的入口方法只会被操作系统调用一次，因而不需要用上下文加以区分。
 
