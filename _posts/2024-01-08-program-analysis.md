@@ -460,6 +460,7 @@ $$\frac{P_1, P_2, \dots, P_m​}{Q_1, Q_2, \dots, Q_n}$$
 ![intra-ci](https://raw.githubusercontent.com/yu-yake2002/yu-yake2002.github.io/main/pictures/Program-Analysis-intra-ci.png)
 
 ### 如何理解方法调用（Method Call）中指针分析的规则？
+
 |类型|语句|规则|PFG边|
 |:-:|:-:|:-:|:-:|
 |调用|`l: r = x.k(a1, ..., an)`|$o_i\in pt(x), m=Dispatch(o_i, k)$<br/>$o_u\in pt(a_j), 1\le j\le n$<br/>$o_v\in pt(m_{ret})$<br/>$\overline{o_i\in pt(m_{this})}$<br/>$o_u\in pt(m_{p_j}), 1\le j\le n$<br/>$o_v\in pt(r)$|$a_1\to m_{p_1}$<br/>... ...<br/>$a_n\to m_{p_n}$<br/>$m_{ret}\to r$|
