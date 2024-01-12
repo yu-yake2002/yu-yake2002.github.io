@@ -314,7 +314,7 @@ UNDEF            & otherwise
 
 即`ICFG = CFG + call & return edges`。
 
-![ICFG](../pictures/Program-Analysis-ICFG.png)
+![ICFG](https://raw.githubusercontent.com/yu-yake2002/yu-yake2002.github.io/main/pictures/Program-Analysis-ICFG.png)
 
 CFG边中从调用点到对应返回点的边称为调用-返回边（Call-to-return edges），除此之外的边称为普通边（Normal Edges）。即`CFG Edges = Call-to-return Edges + Normal Edges`。调用-返回边相当于为子过程不需要用到的外部状态提供了一条传播的捷径。
 
